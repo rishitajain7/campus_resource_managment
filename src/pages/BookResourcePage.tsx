@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { localDate } from '../design/SpaceAvailability';
 import {
   Calendar,
   Clock,
@@ -33,6 +34,7 @@ import { StatusBadge } from '../components/common/StatusBadge';
 export const BookResourcePage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   // Wizard Step (1 to 8)
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -42,6 +44,10 @@ export const BookResourcePage: React.FC = () => {
   const locations = storageService.getLocations();
   const allRooms = storageService.getRooms();
   const societies = storageService.getSocieties();
+  const requestedRoom = allRooms.find(r => r.id === params.get('room'));
+  const initialLocation = requestedRoom?.locationId || locations.find(l => l.id === params.get('location'))?.id || 'LT';
+  const initialRoom = requestedRoom || allRooms.find(r => r.locationId === initialLocation);
+  const validTime = (value: string | null, fallback: string) => value && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : fallback;
 
   // Form State
   const [activityType, setActivityType] = useState<ActivityType>('Workshop / Session');
@@ -53,22 +59,23 @@ export const BookResourcePage: React.FC = () => {
   );
 
   // Location selection
-  const [selectedLocationId, setSelectedLocationId] = useState<CampusLocationCode>('LT');
+  const [selectedLocationId, setSelectedLocationId] = useState<CampusLocationCode>(initialLocation);
 
   // Room selection
-  const [selectedRoomId, setSelectedRoomId] = useState<string>('LT-101');
+  const [selectedRoomId, setSelectedRoomId] = useState<string>(initialRoom?.id || '');
 
   // Date and Time
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const defaultDate = tomorrow.toISOString().split('T')[0];
+  const suppliedDate = params.get('date');
+  const defaultDate = suppliedDate && /^\d{4}-\d{2}-\d{2}$/.test(suppliedDate) && !Number.isNaN(new Date(suppliedDate).getTime()) ? suppliedDate : localDate(tomorrow);
 
   const [bookingDate, setBookingDate] = useState<string>(defaultDate);
-  const [startTime, setStartTime] = useState<string>('14:00');
-  const [endTime, setEndTime] = useState<string>('17:00');
+  const [startTime, setStartTime] = useState<string>(validTime(params.get('start'), '14:00'));
+  const [endTime, setEndTime] = useState<string>(validTime(params.get('end'), '17:00'));
 
   // Permission selection
-  const [permissionType, setPermissionType] = useState<PermissionType>('Morning Permission');
+  const [permissionType, setPermissionType] = useState<PermissionType>(Number((params.get('end') || '17:00').slice(0, 2)) > 20 || Number((params.get('start') || '14:00').slice(0, 2)) >= 20 ? 'Night Permission' : 'Morning Permission');
 
   // Activity Details (Contextual)
   // Society Prep
@@ -158,9 +165,17 @@ export const BookResourcePage: React.FC = () => {
       setValidationError('Please select a room.');
       return false;
     }
+    if (currentStep === 4 && selectedRoom?.status === 'Unavailable') {
+      setValidationError('This room is unavailable. Please choose another room.');
+      return false;
+    }
     if (currentStep === 5) {
       if (!bookingDate) {
         setValidationError('Please select a booking date.');
+        return false;
+      }
+      if (bookingDate < localDate(new Date())) {
+        setValidationError('Please choose today or a future date.');
         return false;
       }
       if (!startTime || !endTime) {
@@ -177,6 +192,10 @@ export const BookResourcePage: React.FC = () => {
         );
         return false;
       }
+    }
+    if (currentStep === 6 && endTime > '20:00' && permissionType !== 'Night Permission') {
+      setValidationError('Bookings after 20:00 require Night Permission.');
+      return false;
     }
     if (currentStep === 6 && !permissionType) {
       setValidationError('Please select Morning or Night permission.');
@@ -237,6 +256,13 @@ export const BookResourcePage: React.FC = () => {
 
   // Submission handler
   const handleSubmitBooking = () => {
+    const latestRoom = storageService.getRooms().find(room => room.id === selectedRoomId);
+    const latestAvailability = storageService.checkRoomAvailability(selectedRoomId, bookingDate, startTime, endTime);
+    if (!latestRoom || latestRoom.status === 'Unavailable' || !latestAvailability.available) {
+      setValidationError('This space is no longer available for your chosen time. Please choose another room or time slot.');
+      setCurrentStep(4);
+      return;
+    }
     let detailsPayload: any = {};
     let purposeText = '';
     let participants = 0;
@@ -318,7 +344,7 @@ export const BookResourcePage: React.FC = () => {
             Reference #{submittedBooking.id}
           </span>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
-            Booking Request Submitted!
+            Your request is on the books.
           </h2>
           <p className="mt-2 text-sm text-slate-600 max-w-md mx-auto">
             Your request is now <strong className="text-amber-600">Pending Approval</strong> by the Permission In-charge. You can monitor the approval status from your dashboard.
@@ -377,174 +403,43 @@ export const BookResourcePage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="booking-workspace space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Book a Campus Resource
+          Make room for it.
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Follow the 8-step structured workflow to request lecture halls, amphitheatres, or auditoriums.
+          Tell us what you’re planning. We’ll help you find the right space.
         </p>
       </div>
 
-      {/* Progress Wizard Bar */}
-      <div className="rounded-2xl bg-white border border-slate-200/80 p-4 shadow-xs">
-        <div className="hidden sm:flex items-center justify-between">
-          {stepsList.map((step, idx) => {
-            const isCompleted = currentStep > step.num;
-            const isCurrent = currentStep === step.num;
-            return (
-              <React.Fragment key={step.num}>
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
-                      isCompleted
-                        ? 'bg-blue-600 text-white'
-                        : isCurrent
-                        ? 'bg-blue-50 text-blue-700 ring-2 ring-blue-600 font-extrabold'
-                        : 'bg-slate-100 text-slate-400'
-                    }`}
-                  >
-                    {isCompleted ? <Check className="h-4 w-4" /> : step.num}
-                  </div>
-                  <span
-                    className={`mt-1.5 text-[11px] font-medium ${
-                      isCurrent ? 'text-blue-700 font-bold' : isCompleted ? 'text-slate-700' : 'text-slate-400'
-                    }`}
-                  >
-                    {step.title}
-                  </span>
-                </div>
-                {idx < stepsList.length - 1 && (
-                  <div
-                    className={`h-0.5 flex-1 mx-2 transition-colors ${
-                      currentStep > idx + 1 ? 'bg-blue-600' : 'bg-slate-200'
-                    }`}
-                  />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-
-        {/* Mobile Step Header */}
-        <div className="sm:hidden flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white font-bold text-xs">
-              {currentStep}
-            </span>
-            <span className="text-xs font-bold text-slate-900">
-              Step {currentStep} of {totalSteps}: {stepsList[currentStep - 1]?.title}
-            </span>
-          </div>
-          <span className="text-xs text-slate-400">
-            {Math.round((currentStep / totalSteps) * 100)}% Complete
-          </span>
-        </div>
-      </div>
+      <nav className="wizard-progress" aria-label="Booking progress">
+        <ol>{stepsList.map(step => <li key={step.num} className={currentStep === step.num ? 'current' : currentStep > step.num ? 'completed' : ''}>
+          <button type="button" disabled={step.num > currentStep} aria-current={step.num === currentStep ? 'step' : undefined} onClick={() => { setCurrentStep(step.num); setValidationError(''); }}>
+            <span>{String(step.num).padStart(2, '0')}</span><strong>{step.title}</strong>{currentStep > step.num && <Check size={14} aria-label="Completed" />}
+          </button>
+        </li>)}</ol>
+        <p className="wizard-mobile-progress">STEP {currentStep} OF {totalSteps} / {stepsList[currentStep - 1].title}</p>
+      </nav>
 
       {/* Validation Error Banner */}
       {validationError && (
-        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2.5 text-xs text-rose-800">
+        <div role="alert" className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2.5 text-xs text-rose-800">
           <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
           <span className="font-medium">{validationError}</span>
         </div>
       )}
 
       {/* Step Content Containers */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs min-h-[380px]">
-        {/* STEP 1: Activity Type */}
-        {currentStep === 1 && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Step 1 — Select Activity Type</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Choose the primary nature of the campus reservation to adapt the required permissions.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              {/* Option 1: Society Preparation */}
-              <div
-                onClick={() => setActivityType('Society Preparation')}
-                className={`cursor-pointer rounded-2xl p-5 border-2 transition-all text-left flex flex-col justify-between ${
-                  activityType === 'Society Preparation'
-                    ? 'border-blue-600 bg-blue-50/40 shadow-xs'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
-                }`}
-              >
-                <div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-700 mb-4">
-                    <Sparkles className="h-6 w-6" />
-                  </div>
-                  <h4 className="text-sm font-bold text-slate-900">Society Preparation</h4>
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    Internal society dry-runs, stage rehearsals, choreography practices, or team core council meetings.
-                  </p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-semibold text-slate-600">
-                  <span>Fast Track Review</span>
-                  {activityType === 'Society Preparation' && (
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                  )}
-                </div>
-              </div>
-
-              {/* Option 2: Workshop / Session */}
-              <div
-                onClick={() => setActivityType('Workshop / Session')}
-                className={`cursor-pointer rounded-2xl p-5 border-2 transition-all text-left flex flex-col justify-between ${
-                  activityType === 'Workshop / Session'
-                    ? 'border-blue-600 bg-blue-50/40 shadow-xs'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
-                }`}
-              >
-                <div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-700 mb-4">
-                    <Presentation className="h-6 w-6" />
-                  </div>
-                  <h4 className="text-sm font-bold text-slate-900">Workshop / Session</h4>
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    Technical bootcamps, guest lectures, expert talks, hands-on lab training, or hackathons.
-                  </p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-semibold text-slate-600">
-                  <span>AV Setup Included</span>
-                  {activityType === 'Workshop / Session' && (
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                  )}
-                </div>
-              </div>
-
-              {/* Option 3: Event */}
-              <div
-                onClick={() => setActivityType('Event')}
-                className={`cursor-pointer rounded-2xl p-5 border-2 transition-all text-left flex flex-col justify-between ${
-                  activityType === 'Event'
-                    ? 'border-blue-600 bg-blue-50/40 shadow-xs'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
-                }`}
-              >
-                <div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-700 mb-4">
-                    <Flame className="h-6 w-6" />
-                  </div>
-                  <h4 className="text-sm font-bold text-slate-900">Campus Event</h4>
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    Large-scale symposiums, competitive fest finals, theatrical plays, concerts, or summits.
-                  </p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-semibold text-slate-600">
-                  <span>Dean Clearance Required</span>
-                  {activityType === 'Event' && (
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+      <div className="wizard-body min-h-[380px]">
+        {currentStep === 1 && <section className="activity-selection"><span className="eyebrow">01 / THE OCCASION</span><h2>What brings you together?</h2><p>Choose the kind of gathering you’re planning.</p><div className="activity-options">
+          {([
+            ['Society Preparation', 'Rehearse & prepare', 'Practice, plan, or get the team together before the main event.'],
+            ['Workshop / Session', 'Run a workshop', 'Make room for a speaker, a new skill, or a shared conversation.'],
+            ['Event', 'Host an event', 'Bring your campus together for a performance or a bigger occasion.'],
+          ] as const).map(([type, title, description], i) => <button type="button" key={type} aria-pressed={activityType === type} className={activityType === type ? 'activity-option selected' : 'activity-option'} onClick={() => setActivityType(type)}><span className="activity-number">0{i + 1}</span><span className="activity-description"><strong>{title}</strong><span>{description}</span></span><span className="activity-select-mark">{activityType === type ? <Check size={21} aria-label="Selected" /> : <span aria-hidden="true">↗</span>}</span></button>)}
+        </div></section>}
 
         {/* STEP 2: Select Society */}
         {currentStep === 2 && (
@@ -570,7 +465,7 @@ export const BookResourcePage: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 max-h-80 overflow-y-auto pr-1">
               {filteredSocieties.map((soc) => (
-                <div
+                <div role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
                   key={soc.id}
                   onClick={() => setSelectedSocietyId(soc.id)}
                   className={`cursor-pointer rounded-xl p-3.5 border transition-all text-left flex items-start justify-between ${
@@ -610,7 +505,7 @@ export const BookResourcePage: React.FC = () => {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-2">
               {locations.map((loc) => (
-                <div
+                <div role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
                   key={loc.id}
                   onClick={() => {
                     setSelectedLocationId(loc.id);
@@ -659,7 +554,7 @@ export const BookResourcePage: React.FC = () => {
               {availableRoomsForLocation.map((room) => {
                 const isSelected = selectedRoomId === room.id;
                 return (
-                  <div
+                  <div role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
                     key={room.id}
                     onClick={() => setSelectedRoomId(room.id)}
                     className={`cursor-pointer rounded-2xl p-4 border transition-all text-left flex flex-col justify-between ${
@@ -809,7 +704,7 @@ export const BookResourcePage: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               {/* Morning Permission */}
-              <div
+              <div role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
                 onClick={() => setPermissionType('Morning Permission')}
                 className={`cursor-pointer rounded-2xl p-5 border-2 transition-all text-left flex flex-col justify-between ${
                   permissionType === 'Morning Permission'
@@ -835,7 +730,7 @@ export const BookResourcePage: React.FC = () => {
               </div>
 
               {/* Night Permission */}
-              <div
+              <div role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
                 onClick={() => setPermissionType('Night Permission')}
                 className={`cursor-pointer rounded-2xl p-5 border-2 transition-all text-left flex flex-col justify-between ${
                   permissionType === 'Night Permission'

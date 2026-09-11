@@ -1,157 +1,67 @@
-# Campus Resource and Booking Management System
+# Campus Reserve — Thapar Institute
 
-A modern, responsive, university-grade frontend prototype for a college **Campus Resource and Booking Management System** built with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Lucide Icons**, and **React Router v7**.
+A redesigned campus resource and booking portal. The visual direction takes inspiration from White Desert's editorial composition, with original campus-specific layouts: architectural photography, warm paper, forest-green type, terracotta accents, square controls, fine rules, and an asymmetrical overview.
 
-Designed for campus societies, students, permission in-charges, and campus administrators to request, review, and schedule campus rooms and resources.
+## Run locally
 
----
+1. Install Node.js 22.12 or newer (verified with Node 24.20).
+2. Extract the ZIP and open a terminal in `campus_resource_managment`, the folder containing `package.json`.
+3. Run:
 
-## 🏛️ Campus Locations Covered (12 Designated Zones)
-
-1. **LP** — Library Plaza & Amphitheatre
-2. **LT** — Lecture Theatres Complex (LT-101, LT-102, LT-201, LT-202)
-3. **TAN** — TAN Activity Centre (Dance & Dramatics Studios)
-4. **B Block** — Academic Block B (Classrooms & Seminar Halls)
-5. **C Block** — Academic Block C (Computer Science Seminar & Labs)
-6. **D Block** — Academic Block D (Audio-Visual & Engineering Halls)
-7. **E Block** — Academic Block E (Presentation Suites & Discussion Rooms)
-8. **F Block** — Academic Block F (Lecture Theatres & Tutorial Rooms)
-9. **Main Auditorium** — Grand Hall (1,500 seats), Stage & VIP Lounge
-10. **GR1** — Green Reservation 1 (Festival Lawns & Event Stage)
-11. **GR2** — Green Reservation 2 (Sports Pavilion & Track Grounds)
-12. **CR** — Central Conference & Common Room
-
----
-
-## 🚀 Quick Start
-
-### 1. Prerequisites
-- **Node.js**: v18+ or v20+ (recommended)
-- **npm** or **pnpm** / **yarn**
-
-### 2. Installation
-```bash
-# Clone the repository (or navigate to the project directory)
-cd campus-resource-portal
-
-# Install dependencies
-npm install
-```
-
-### 3. Run Locally (Dev Server)
-```bash
+```sh
+npm ci
 npm run dev
 ```
-Open your browser at `http://localhost:5173`.
 
-### 4. Build for Production
-```bash
+4. Open the local URL printed in the terminal, normally http://localhost:5173. Keep the terminal running. Use Ctrl+C to stop.
+
+If PowerShell blocks `npm.ps1`, use `npm.cmd ci` and `npm.cmd run dev` instead.
+
+Do not double-click `index.html` or serve the source with Live Server. Vite transforms the TypeScript and resolves its dependencies. The entry sequence is `index.html` → `src/main.tsx` → `src/App.tsx`.
+
+## Build and check
+
+```sh
 npm run build
-```
-Generates optimized static assets in the `dist/` directory.
-
----
-
-## 👥 Demo Personas (1-Click Login)
-
-The portal provides 1-click demo logins on the Login page and a live persona switcher in the top navbar:
-
-| Persona | Name | Role | Access / Capabilities |
-| :--- | :--- | :--- | :--- |
-| **Student / Society** | Aayati Sharma | President (*IEEE Student Branch*) | 8-step booking wizard, My Bookings, live room availability, status tracking. |
-| **Permission In-charge** | Dr. R. K. Verma | Associate Dean (Student Affairs) | Pending approval queue, Approve/Reject modals with justification, review filters. |
-| **Campus Admin** | Prof. Sandeep Bansal | Campus Resource Director | Room inventory CRUD, society directory management, system overview. |
-
----
-
-## 📂 Project Architecture
-
-```text
-campus-resource-portal/
-├── index.html
-├── package.json
-├── tsconfig.json
-├── tsconfig.app.json
-├── tsconfig.node.json
-├── vite.config.ts
-├── README.md
-└── src/
-    ├── main.tsx
-    ├── App.tsx
-    ├── index.css
-    ├── types/
-    │   └── index.ts               # Complete TypeScript models (Booking, Room, Society, User, Notification)
-    ├── data/
-    │   └── mockData.ts            # Realistic seed data (all 12 zones, rooms, societies, initial bookings)
-    ├── services/
-    │   └── storageService.ts      # Reactive localStorage state, collision detection, and notification dispatch
-    ├── context/
-    │   └── AuthContext.tsx        # Authentication & persona switching context
-    ├── components/
-    │   ├── common/
-    │   │   ├── Navbar.tsx         # University branding, live persona switcher, notifications dropdown
-    │   │   ├── Sidebar.tsx        # Responsive role-aware navigation drawer
-    │   │   ├── StatusBadge.tsx    # Standardized color-coded status chips
-    │   │   ├── Modal.tsx          # Accessible modal dialog
-    │   │   └── MetricCard.tsx     # KPI stat cards with trend indicators
-    │   └── booking/
-    │       ├── BookingDetailsModal.tsx # Inspection view with specifications and approval info
-    │       └── RejectionModal.tsx      # Formal rejection dialog with reason prompt
-    ├── layouts/
-    │   └── DashboardLayout.tsx    # Master layout combining Navbar, Sidebar, and Outlet
-    └── pages/
-        ├── LoginPage.tsx          # Institutional login with 1-click persona buttons
-        ├── StudentDashboard.tsx   # Student home with stats and upcoming bookings
-        ├── BookResourcePage.tsx   # 8-step booking wizard with real-time conflict detector
-        ├── MyBookingsPage.tsx     # Filterable bookings table with status tabs
-        ├── InChargeDashboard.tsx  # Permission approval queue with decision workflows
-        ├── AdminDashboard.tsx     # Resource & society administration
-        ├── AvailabilityPage.tsx   # Interactive hourly slot viewer (08:00 AM - 10:00 PM)
-        └── NotificationsPage.tsx  # System notifications center
+npm run test:smoke
+npm run preview
 ```
 
----
+The production build is in `dist/`, also included in this archive. Preview normally opens at http://localhost:4173. If publishing the built folder elsewhere, configure the host to return `index.html` for application routes.
 
-## 🔄 Core User Flow
+## What's included
 
-```text
-Login 
-  └── Student Dashboard
-        └── Book a Resource
-              ├── Step 1: Select Activity Type (Society Prep / Workshop / Event)
-              ├── Step 2: Select Society (IEEE, CSI, EDC, etc.)
-              ├── Step 3: Select Campus Location (12 Zones)
-              ├── Step 4: Select Room / Venue (Capacity & AV tags)
-              ├── Step 5: Select Date & Time (Live collision detection)
-              ├── Step 6: Select Morning / Night Permission
-              ├── Step 7: Enter Activity Details (Contextual Form)
-              └── Step 8: Review Summary & Submit Request
-                    └── Transmitted to Permission In-charge
-                          └── In-Charge Dashboard (Approve or Reject with Reason)
-                                └── Real-time Status Update in Student Dashboard & My Bookings
-```
+- Editorial campus overview, society-specific booking totals, recent requests and campus directory links.
+- Responsive horizontal navigation, mobile menu, account switching and notification panel.
+- Redesigned sign-in screen with the existing demo personas.
+- Availability schedule with location, room and date filters. Selecting an hourly slot carries the room, date and time into the booking form.
+- Eight-step reservation form, contextual activity details, conflict checks, night-permission validation, request review and confirmation.
+- Existing booking search, status filters, cancellation and booking details.
+- In-charge approval/rejection flows and admin room/society management, with navigation synchronized to the relevant section.
+- Keyboard-operable selection controls, visible focus styles, reduced-motion support and native dialogs with Escape handling and focus management.
 
----
+New design files are in `src/design/`. Shared metrics, status indicators and dialogs are in `src/components/common/`. Existing business screens and booking logic remain in `src/pages/` and `src/services/`.
 
-## 🛠️ How to Push to Your GitHub Repository
+## Demo access and data
 
-```bash
-# 1. Initialize git inside this project directory
-git init
+This is a frontend prototype, not a production authentication system. The root route opens the student demo by default. Open `/login` or the account menu to switch between student, permission in-charge and campus admin. Passwords are not verified.
 
-# 2. Add all files
-git add .
+Bookings, rooms, societies and notifications use browser localStorage. There is no backend, database service or `.env` configuration to install. The demo does not synchronize data across browsers or devices. Existing browser data is preserved.
 
-# 3. Commit changes
-git commit -m "feat: Initial commit for Campus Resource & Booking Management System"
+## Stack
 
-# 4. Rename default branch to main
-git branch -M main
+React 19, TypeScript 6, Vite 8, React Router 7, Tailwind CSS 4, and Lucide React. The original package dependencies and lockfile are preserved; `npm ci` installs the required versions.
 
-# 5. Link to your GitHub remote repository
-git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPO_NAME>.git
+## Image source
 
-# 6. Push code to GitHub
-git push -u origin main
-```
+The Thapar Learning Laboratory photograph is served from the architect's site and requires internet access:
 
+- https://mcculloughmulvin.com/projects/thapar-university-learning-centre
+
+The photograph is credited in the interface and is not bundled in this archive. No open redistribution license was identified. A typographic fallback appears if the image cannot load. White Desert's text, photographs and implementation were not copied into the portal.
+
+## Verification
+
+The production build passed. All 32 smoke checks passed, covering rendering of the eight main screens, availability links, admin routing, unavailable rooms, booking conflict boundaries, approval/rejection/cancellation and notification state. The tests use isolated in-memory storage and do not alter browser data.
+
+Automated browser visual and interaction testing could not run because a saved browser-access preference blocked the local preview. The responsive layouts are implemented, but a full visual review remains advisable.

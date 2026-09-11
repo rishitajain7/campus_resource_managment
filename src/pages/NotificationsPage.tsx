@@ -29,7 +29,7 @@ export const NotificationsPage: React.FC = () => {
   }, []);
 
   const handleMarkAllAsRead = () => {
-    storageService.markAllNotificationsAsRead();
+    visibleNotifications.forEach(notif => storageService.markNotificationAsRead(notif.id));
   };
 
   const handleNotificationClick = (notif: SystemNotification) => {
@@ -41,13 +41,15 @@ export const NotificationsPage: React.FC = () => {
     }
   };
 
+  const visibleNotifications = notifications.filter(notif => !notif.recipientRole || notif.recipientRole === 'all' || notif.recipientRole === user.role);
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Notifications Center
+            The latest updates.
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Real-time status updates on permission requests, venue clearances, and campus reminders.
@@ -66,15 +68,15 @@ export const NotificationsPage: React.FC = () => {
 
       {/* Notifications List */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden divide-y divide-slate-100">
-        {notifications.length === 0 ? (
+        {visibleNotifications.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-400">
             No notifications available.
           </div>
         ) : (
-          notifications.map((notif) => {
+          visibleNotifications.map((notif) => {
             const isRead = notif.read;
             return (
-              <div
+              <div role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
                 key={notif.id}
                 onClick={() => handleNotificationClick(notif)}
                 className={`p-5 transition-colors cursor-pointer flex items-start gap-4 ${

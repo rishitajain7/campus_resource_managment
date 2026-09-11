@@ -1,14 +1,14 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { DashboardLayout } from './layouts/DashboardLayout';
-import { LoginPage } from './pages/LoginPage';
-import { StudentDashboard } from './pages/StudentDashboard';
+import { PortalLayout as DashboardLayout } from './design/PortalLayout';
+import { SignIn as LoginPage } from './design/SignIn';
+import { CampusOverview as StudentDashboard } from './design/CampusOverview';
 import { BookResourcePage } from './pages/BookResourcePage';
 import { MyBookingsPage } from './pages/MyBookingsPage';
 import { InChargeDashboard } from './pages/InChargeDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { AvailabilityPage } from './pages/AvailabilityPage';
+import { SpaceAvailability as AvailabilityPage } from './design/SpaceAvailability';
 import { NotificationsPage } from './pages/NotificationsPage';
 
 const RoleBasedHome: React.FC = () => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Users,
   Building2,
@@ -25,7 +26,10 @@ export const AdminDashboard: React.FC = () => {
   const [locations] = useState(() => storageService.getLocations());
   const [bookings, setBookings] = useState(() => storageService.getBookings());
 
-  const [activeTab, setActiveTab] = useState<'rooms' | 'societies' | 'overview'>('rooms');
+  const { pathname } = useLocation();
+  const tabForPath = (path: string): 'rooms' | 'societies' | 'overview' => path === '/admin/rooms' ? 'rooms' : path === '/admin/societies' ? 'societies' : 'overview';
+  const [activeTab, setActiveTab] = useState<'rooms' | 'societies' | 'overview'>(() => tabForPath(pathname));
+  useEffect(() => setActiveTab(tabForPath(pathname)), [pathname]);
 
   // Room modal state
   const [showRoomModal, setShowRoomModal] = useState(false);
@@ -172,14 +176,14 @@ export const AdminDashboard: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Campus Administration & Resources
+              Campus, in order.
             </h1>
             <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-xs font-bold">
               Admin Mode
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Configure campus room inventory, student society registries, and system policies.
+            Manage rooms, societies, and the spaces that bring them together.
           </p>
         </div>
 
