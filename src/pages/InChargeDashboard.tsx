@@ -34,6 +34,7 @@ export const InChargeDashboard: React.FC<InChargeDashboardProps> = ({
 
   // Tabs: All | Morning | Night | Pending
   const [currentTab, setCurrentTab] = useState<'All' | 'Morning' | 'Night' | 'Pending'>(initialTab);
+  useEffect(() => setCurrentTab(initialTab), [initialTab]);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -129,7 +130,7 @@ export const InChargeDashboard: React.FC<InChargeDashboardProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Permission Approval Queue
+              Ready for review.
             </h1>
             <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold">
               Official Review

@@ -41,7 +41,7 @@ export const MyBookingsPage: React.FC = () => {
     const userFiltered = bookings.filter(
       (b) => b.submittedBy === user.id || b.societyId === user.societyId
     );
-    return userFiltered.length > 0 ? userFiltered : bookings;
+    return userFiltered;
   }, [bookings, user]);
 
   // Tab and Search Filtering
